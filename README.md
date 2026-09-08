@@ -24,12 +24,35 @@ cd kokoro-ninja
 pip install -r requirements.txt
 ```
 
-**espeak-ng 1.50 is required.** The model was trained on 1.50's phoneme output; newer versions
-drift the IPA and audibly degrade quality. Most distros ship 1.51/1.52, so build it:
+**espeak-ng is required** — it's the phonemizer backend. The simplest correct install ships
+prebuilt dictionaries:
 
 ```bash
-git clone --depth 1 --branch 1.50 https://github.com/espeak-ng/espeak-ng
-cd espeak-ng && ./autogen.sh && ./configure --prefix=$HOME/.local/espeak150 && make -j && make install
+pip install espeakng-loader     # bundles espeak-ng 1.52, dictionaries included
+```
+
+```python
+import espeakng_loader
+from phonemizer.backend.espeak.wrapper import EspeakWrapper
+EspeakWrapper.set_library(espeakng_loader.get_library_path())
+EspeakWrapper.set_data_path(espeakng_loader.get_data_path())
+```
+
+The model was trained against espeak-ng **1.50**. We compared 1.50 and 1.52 through this repo's
+phonemizer and got **identical phonemes on all 30 Vietnamese benchmark sentences**, plus identical
+output for English, French, German, Japanese and Korean — so 1.52 is fine. Only Mandarin differs,
+where 1.52 is the better of the two (1.50 ships no `cmn_dict`).
+
+If you do build 1.50 from source, **compile the dictionaries explicitly**. A plain `make` can leave
+them corrupt, and a broken `en_dict` makes espeak spell words out letter by letter
+("B-O-N-J-O-U-R") — which silently wrecks English, French and German while Vietnamese still sounds
+fine, so it is easy to miss:
+
+```bash
+cd espeak-ng/dictsource
+for L in en-us fr de ja ko vi; do
+  ESPEAK_DATA_PATH=../espeak-ng-data LD_LIBRARY_PATH=../src/.libs ../src/espeak-ng --compile=$L
+done
 ```
 
 Then put the weights bundle in `checkpoints/`. `config_inference.yml` resolves the asset paths
@@ -38,7 +61,7 @@ relative to itself, so keep it beside them:
 ```
 checkpoints/
 ├── config_inference.yml
-├── vi_campplus.pth
+├── kokoro-ninja-multilingual.pth
 ├── campplus/campplus.onnx
 └── Utils/{ASR,JDC,PLBERT}/...
 ```
@@ -50,7 +73,7 @@ import soundfile as sf
 from kokoro_ninja import KokoroNinja
 
 tts = KokoroNinja.load(
-    checkpoint_path="checkpoints/vi_campplus.pth",
+    checkpoint_path="checkpoints/kokoro-ninja-multilingual.pth",
     config_path="checkpoints/config_inference.yml",
     campplus_onnx_path="checkpoints/campplus/campplus.onnx",
     device="cuda:0",
@@ -136,7 +159,10 @@ merger in Vietnamese.)
 ## Limitations
 
 - **Speaker similarity** trails the best autoregressive/codec models (see above).
-- **Vietnamese only** in this release.
+- **Benchmarked on Vietnamese only** — the other six languages work but are not yet measured.
+- **Japanese input must be kana.** espeak-ng reads hiragana and katakana correctly but
+  silently *drops* kanji, so run text through a kanji→kana converter (pyopenjtalk, MeCab)
+  first. Every other language takes normal text.
 - **No text normalization.** Expand numbers, dates and currency before synthesis — this is the
   most common source of real-world errors in Vietnamese TTS and it is not handled here.
 - Noisy or very short (<3s) references degrade cloning; there is no built-in denoiser.

@@ -4,7 +4,7 @@ import soundfile as sf
 from kokoro_ninja import KokoroNinja
 
 tts = KokoroNinja.load(
-    checkpoint_path="checkpoints/vi_campplus.pth",
+    checkpoint_path="checkpoints/kokoro-ninja-multilingual.pth",
     config_path="checkpoints/config_inference.yml",
     campplus_onnx_path="checkpoints/campplus/campplus.onnx",
     device="cuda:0",
