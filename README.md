@@ -1,14 +1,20 @@
 # Kokoro Ninja 🥷
 
-**Fast Vietnamese text-to-speech with zero-shot voice cloning.** Give it a few seconds of
-someone's voice and any Vietnamese text, and it speaks in that voice — at **~15× realtime on a
-single GPU**.
+**Fast multilingual text-to-speech with zero-shot voice cloning.** Give it a few seconds of
+someone's voice and some text, and it speaks in that voice — at **~15× realtime on a single
+GPU**.
+
+**7 languages:** Vietnamese, English, Chinese, French, German, Japanese, Korean — one model,
+one speaker embedding, so a cloned voice carries across every language it supports.
+
+**[🎧 Listen to the demo](https://primepake.github.io/kokoro-ninja/)** — side-by-side against
+VieNeu-TTS and omnivoice-vietnamese on held-out speakers, plus one voice across all seven
+languages. **[Weights on HuggingFace](https://huggingface.co/prime2070/kokoro-ninja)**.
 
 [StyleTTS2](https://github.com/yl4579/StyleTTS2) + a
-[CAMPPlus](https://github.com/modelscope/3D-Speaker) speaker encoder, fine-tuned on ~2,160
-hours of Vietnamese. One non-autoregressive forward pass: no diffusion sampler, no
-autoregressive decode loop. That's where the speed comes from, and it makes generation
-deterministic — same input, same output.
+[CAMPPlus](https://github.com/modelscope/3D-Speaker) speaker encoder. One non-autoregressive
+forward pass: no diffusion sampler, no autoregressive decode loop. That's where the speed comes
+from, and it makes generation deterministic — same input, same output.
 
 ## Install
 
@@ -51,14 +57,32 @@ tts = KokoroNinja.load(
 )
 
 style = tts.compute_style("reference.wav")        # 3-10s of the voice to clone
+
 wav, sr = tts.synthesize(
     text="Xin chào, đây là giọng nói được nhân bản.",
     ref_s=style,
+    language="vi",
 )
 sf.write("output.wav", wav, sr)
 ```
 
 `compute_style()` is per-voice — compute it once and reuse it for every sentence in that voice.
+
+The same speaker embedding works across languages, so one reference clip clones a voice into
+any of the seven:
+
+```python
+from kokoro_ninja import FAST_SUPPORTED_LANGUAGES
+print(FAST_SUPPORTED_LANGUAGES)   # ('vi', 'en', 'zh', 'fr', 'de', 'ja', 'ko')
+
+for lang, text in [
+    ("en", "Hello, this is a cloned voice."),
+    ("ja", "こんにちは、これはクローンされた声です。"),
+    ("fr", "Bonjour, ceci est une voix clonée."),
+]:
+    wav, sr = tts.synthesize(text=text, ref_s=style, language=lang)
+    sf.write(f"output_{lang}.wav", wav, sr)
+```
 
 ## Benchmarks
 
@@ -108,12 +132,29 @@ merger in Vietnamese.)
 - Noisy or very short (<3s) references degrade cloning; there is no built-in denoiser.
 - 24 kHz output, no streaming.
 
+## Training data
+
+| Corpus | Role | Licence |
+|---|---|---|
+| [viVoice](https://huggingface.co/datasets/capleaf/viVoice) | Vietnamese, ~1,000 h | **CC-BY-NC-SA-4.0** |
+| [Emilia](https://huggingface.co/datasets/amphion/Emilia-Dataset) (subset) | multilingual | **CC-BY-NC-4.0** |
+| internal corpus | Vietnamese | proprietary |
+
+Base checkpoint: StyleTTS2's LibriTTS model, adapted to the Vietnamese phoneme vocabulary and
+then extended to the multilingual token set.
+
 ## Licence
 
-Code: **Apache-2.0** ([LICENSE](LICENSE)).
+**Code: Apache-2.0** ([LICENSE](LICENSE)) — this repository's source.
+
+**Weights: CC-BY-NC-SA-4.0 — non-commercial.** This is not a choice, it is inherited: viVoice
+is CC-BY-NC-SA (NonCommercial *and* ShareAlike) and the Emilia subset is CC-BY-NC, so the
+strictest terms propagate to anything trained on them. Concretely, you may use the weights for
+research, evaluation and personal projects; you may **not** use them in a commercial product,
+and derivatives must carry the same licence. If you need commercial terms, you need a model
+trained without those corpora.
 
 Built on [StyleTTS2](https://github.com/yl4579/StyleTTS2) (MIT),
 [CAMPPlus / 3D-Speaker](https://github.com/modelscope/3D-Speaker) (Apache-2.0), and
 [espeak-ng](https://github.com/espeak-ng/espeak-ng) (GPL-3.0, used as a separate runtime
-library). Model weights ship separately and carry their own licence — check the weights card
-before commercial use.
+library).

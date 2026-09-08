@@ -35,12 +35,12 @@ _CAMPPLUS_SR = 16000
 
 # --- kokoro-vi v4 multilingual phonemization -------------------------------
 # One shared model, 7 languages. Vietnamese keeps its custom onset
-# disambiguation (kokoro_vi.phonemize_vi); the other six go through espeak-ng
+# disambiguation (kokoro_ninja.phonemize_vi); the other six go through espeak-ng
 # with the exact language codes the v4 training set was built with (see the
 # release's emilia_index_multi.py LANG_MAP). espeak-ng MUST be 1.50 (the
 # Dockerfile pins/verifies it) or the IPA drifts from what the model trained on.
 _ESPEAK_LANG = {
-    "vi": None,        # custom: kokoro_vi.phonemize_vi (NOT raw espeak "vi")
+    "vi": None,        # custom: kokoro_ninja.phonemize_vi (NOT raw espeak "vi")
     "en": "en-us",
     "zh": "cmn",
     "fr": "fr-fr",

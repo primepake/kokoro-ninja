@@ -19,7 +19,7 @@ model_params:
   max_conv_dim: 512
   n_layer: 3
   n_mels: 80
-  n_token: 187
+  n_token: 190
   max_dur: 50
   style_dim: 128
   dropout: 0.2
