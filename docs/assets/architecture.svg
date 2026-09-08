@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 10 1000 660" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <style>
+    .box   { fill: #ffffff; stroke: #555; stroke-width: 1.4; }
+    .voice { fill: #f2ecfb; stroke: #8c6fc9; }
+    .text  { fill: #e8f5f3; stroke: #3f9c8f; }
+    .fuse  { fill: #fdf2e3; stroke: #d99a3d; }
+    .label { font-size: 13.5px; fill: #222; }
+    .sub   { font-size: 11px; fill: #666; }
+    .h     { font-size: 15px; fill: #222; font-weight: 600; }
+    .edge       { stroke: #666; stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+    .edge-voice { stroke: #8c6fc9; }
+    .edge-text  { stroke: #3f9c8f; }
+    .edge-dash  { stroke-dasharray: 4 3; }
+  </style>
+
+  <text x="500" y="28" text-anchor="middle" class="h" font-size="18">Kokoro Ninja — inference pipeline</text>
+  <text x="500" y="46" text-anchor="middle" class="sub">single deterministic forward pass — no diffusion sampler, no autoregressive loop</text>
+
+  <!-- Row A -->
+  <rect x="50" y="70" width="260" height="50" rx="8" class="box voice"/>
+  <text x="180" y="90" text-anchor="middle" class="label">Reference audio</text>
+  <text x="180" y="106" text-anchor="middle" class="sub">3–10s clip, resampled to 16 kHz</text>
+
+  <rect x="690" y="70" width="260" height="50" rx="8" class="box text"/>
+  <text x="820" y="90" text-anchor="middle" class="label">Text + language</text>
+  <text x="820" y="106" text-anchor="middle" class="sub">vi / en / zh / fr / de / ja / ko</text>
+
+  <!-- Row B -->
+  <rect x="50" y="160" width="260" height="66" rx="8" class="box voice"/>
+  <text x="180" y="181" text-anchor="middle" class="label">CAMPPlus (ONNX) + camp_proj</text>
+  <text x="180" y="197" text-anchor="middle" class="sub">speaker embedding -&gt; 256-d style vector</text>
+  <text x="180" y="211" text-anchor="middle" class="sub">split into acoustic | prosodic halves</text>
+
+  <rect x="690" y="160" width="260" height="66" rx="8" class="box text"/>
+  <text x="820" y="181" text-anchor="middle" class="label">Phonemizer -&gt; encoders</text>
+  <text x="820" y="197" text-anchor="middle" class="sub">espeak-ng 1.50 (vi: custom tr/ch,</text>
+  <text x="820" y="211" text-anchor="middle" class="sub">s/x, r/d-gi fix) -&gt; text encoder + PL-BERT</text>
+
+  <!-- Row C: style halves / text features -->
+  <rect x="50" y="270" width="120" height="44" rx="8" class="box voice"/>
+  <text x="110" y="297" text-anchor="middle" class="label">acoustic</text>
+
+  <rect x="190" y="270" width="120" height="44" rx="8" class="box voice"/>
+  <text x="250" y="297" text-anchor="middle" class="label">prosodic</text>
+
+  <rect x="690" y="270" width="260" height="44" rx="8" class="box text"/>
+  <text x="820" y="292" text-anchor="middle" class="label" font-size="12.5">t_en (text) + d_en (BERT)</text>
+
+  <!-- Row D: duration + alignment -->
+  <rect x="430" y="350" width="340" height="70" rx="8" class="box fuse"/>
+  <text x="600" y="372" text-anchor="middle" class="label">Duration predictor (LSTM)</text>
+  <text x="600" y="388" text-anchor="middle" class="sub">+ hard monotonic alignment</text>
+  <text x="600" y="402" text-anchor="middle" class="sub">expands tokens -&gt; frames by predicted duration</text>
+
+  <!-- Row E -->
+  <rect x="430" y="450" width="160" height="44" rx="8" class="box fuse"/>
+  <text x="510" y="472" text-anchor="middle" class="label" font-size="12.5">aligned text feats.</text>
+  <text x="510" y="486" text-anchor="middle" class="sub">-&gt; asr</text>
+
+  <rect x="610" y="450" width="160" height="44" rx="8" class="box fuse"/>
+  <text x="690" y="472" text-anchor="middle" class="label" font-size="12.5">F0 / energy predictor</text>
+  <text x="690" y="486" text-anchor="middle" class="sub">-&gt; F0, N</text>
+
+  <!-- Row F: decoder -->
+  <rect x="300" y="540" width="400" height="50" rx="8" class="box fuse"/>
+  <text x="500" y="560" text-anchor="middle" class="label">Decoder (HiFi-GAN)</text>
+  <text x="500" y="576" text-anchor="middle" class="sub">asr + F0 + N + acoustic style -&gt; mel/waveform</text>
+
+  <!-- Row G: output -->
+  <rect x="380" y="620" width="240" height="40" rx="8" class="box"/>
+  <text x="500" y="644" text-anchor="middle" class="label">Waveform, 24 kHz</text>
+
+  <!-- ===== Edges ===== -->
+  <!-- voice branch -->
+  <path class="edge edge-voice" d="M180,120 L180,160"/>
+  <path class="edge edge-voice" d="M155,226 L120,270"/>
+  <path class="edge edge-voice" d="M205,226 L245,270"/>
+
+  <!-- text branch -->
+  <path class="edge edge-text" d="M820,120 L820,160"/>
+  <path class="edge edge-text" d="M820,226 L820,270"/>
+
+  <!-- prosodic -> duration predictor -->
+  <path class="edge edge-voice" d="M280,314 L430,385"/>
+  <!-- prosodic -> F0/energy predictor (secondary conditioning), routed under the duration box -->
+  <path class="edge edge-voice edge-dash" d="M250,314 L250,432 L690,432 L690,450"/>
+
+  <!-- text feats -> duration predictor -->
+  <path class="edge edge-text" d="M790,314 L770,350"/>
+
+  <!-- duration+alignment -> aligned text feats / F0 predictor -->
+  <path class="edge" d="M545,420 L520,450"/>
+  <path class="edge" d="M655,420 L680,450"/>
+
+  <!-- aligned text feats / F0 predictor -> decoder -->
+  <path class="edge" d="M510,494 L510,540"/>
+  <path class="edge" d="M690,494 L690,540"/>
+
+  <!-- acoustic -> decoder (routed around the left side) -->
+  <path class="edge edge-voice" d="M110,314 L110,565 L300,565"/>
+
+  <!-- decoder -> waveform -->
+  <path class="edge" d="M500,590 L500,620"/>
+</svg>
