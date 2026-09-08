@@ -1,0 +1,16 @@
+torch>=2.1
+torchaudio>=2.1
+numpy
+librosa
+soundfile
+pyyaml
+munch
+einops
+einops_exts
+scipy
+transformers>=4.30      # PL-BERT text encoder
+onnxruntime-gpu         # CAMPPlus speaker encoder (use onnxruntime on CPU-only machines)
+phonemizer              # requires espeak-ng 1.50 installed separately (see README)
+pandas
+matplotlib
+nltk
