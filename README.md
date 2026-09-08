@@ -16,6 +16,10 @@ languages. **[Weights on HuggingFace](https://huggingface.co/prime2070/kokoro-ni
 forward pass: no diffusion sampler, no autoregressive decode loop. That's where the speed comes
 from, and it makes generation deterministic — same input, same output.
 
+## Architecture
+
+<img src="docs/assets/architecture.svg" alt="Kokoro Ninja inference pipeline: reference audio through CAMPPlus and camp_proj into a style vector split into acoustic and prosodic halves, text through the phonemizer and text/BERT encoders, merged at the duration predictor and monotonic alignment, then F0/energy prediction and the HiFi-GAN decoder producing the output waveform." width="100%">
+
 ## Install
 
 ```bash
