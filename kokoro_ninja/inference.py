@@ -50,6 +50,17 @@ _ESPEAK_LANG = {
 }
 FAST_SUPPORTED_LANGUAGES = tuple(_ESPEAK_LANG.keys())
 
+# Sentence-final marks the model treats as a terminator, across all 7 languages
+# (includes the CJK full-width forms).
+TERMINAL_PUNCT = frozenset(
+    ".!?;:,"        # latin
+    "\u2026"          # ellipsis
+    "\u3002\uff01\uff1f\uff1b\uff1a\u3001"  # CJK full-width
+    "\"'"           # straight quotes
+    "\u201d\u2019"        # curly closing quotes
+    ")]}"
+)
+
 # espeak emits language-switch tags like "(en)...(vi)" around foreign words plus
 # a few stray bracket/tilde chars; TextCleaner would choke on them. Strip both,
 # matching the v4 release's clean().
@@ -226,6 +237,12 @@ class KokoroVI:
         if phonemes is None:
             if not text:
                 raise ValueError("Either text or phonemes must be provided")
+            # The model is trained on sentence-final punctuation and is genuinely
+            # sensitive to it: without a terminal mark the last syllable tends to be
+            # clipped or run on. Add one when the caller's text lacks it.
+            stripped = text.rstrip()
+            if stripped and stripped[-1] not in TERMINAL_PUNCT:
+                text = stripped + "."
             phonemes = self._phonemize(text, language)
 
         with self._infer_lock, torch.no_grad():

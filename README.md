@@ -91,21 +91,31 @@ references and sentences for every system:
 
 | System | RTF ↓ | ×realtime | SECS ↑ | UTMOSv2 ↑ | WER ↓ |
 |---|---|---|---|---|---|
-| **Kokoro Ninja** | **0.069** | **14.6×** | 0.887 | 2.465 | 5.1% |
-| omnivoice-vietnamese | 0.437 | 2.3× | 0.916 | 2.702 | 2.6% |
-| VieNeu-TTS v3 Turbo | 0.718 | 1.4× | 0.931 | 2.422 | 3.3% |
-| *human recording* | — | — | *0.914* | *3.008* | *5.7%* |
+| **Kokoro Ninja** | **0.061** | **16.3×** | 0.894 | 2.660 | 3.9% |
+| omnivoice-vietnamese | 0.437 | 2.3× | 0.916 | 2.660 | 2.6% |
+| VieNeu-TTS v3 Turbo | 0.718 | 1.4× | 0.931 | 2.445 | 3.3% |
+| *human recording* | — | — | *0.914* | *3.019* | *5.7%* |
 
-Honestly: **we win on speed by 6–10×** and tie on naturalness, but **speaker similarity trails**
-the autoregressive models — 0.887 against a 0.833 floor (two different speakers) and a 0.914
-ceiling (the same speaker's other recordings). If you need maximum timbre fidelity from one
-clip rather than throughput, VieNeu v3 Turbo is currently better. Intelligibility is at the
-ASR's own floor: our 5.1% WER is below the human recordings' 5.7%.
+Honestly: **we win on speed by 7–12×** and tie omnivoice-vietnamese for the best predicted
+naturalness, but **speaker similarity trails** the autoregressive models — 0.894 against a 0.833
+floor (two different speakers) and a 0.914 ceiling (the same speaker's other recordings), so we
+reach about three-quarters of the usable range while they reach it or pass it. If you need
+maximum timbre fidelity from one clip rather than throughput, VieNeu v3 Turbo is currently
+better. Intelligibility is below the human recordings' own 5.7% WER.
 
 RTF is full-utterance compute ÷ audio duration, not time-to-first-audio. SECS is scored with
 WavLM-base-plus-sv rather than CAMPPlus, since scoring with the encoder the model is
 conditioned on would flatter it. WER is PhoWhisper back-transcription, which catches wrong
-tones because a wrong tone is a different Vietnamese word.
+tones because a wrong tone is a different Vietnamese word. UTMOSv2 is also nondeterministic —
+rescoring identical audio moves it by up to 0.08, so treat small MOS gaps as noise; SECS and WER
+are exactly reproducible.
+
+### Always end your text with punctuation
+
+The model is trained on sentence-final punctuation and is genuinely sensitive to it — text
+without a terminal mark tends to clip or run on at the end. `synthesize()` appends one when your
+text lacks it. The effect is not subtle: on the benchmark above, adding the missing period moved
+WER from 5.1% to 3.9% and predicted MOS from 2.47 to 2.66.
 
 ## Vietnamese phonemization
 
