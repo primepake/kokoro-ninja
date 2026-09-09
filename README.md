@@ -24,19 +24,10 @@ cd kokoro-ninja
 pip install -r requirements.txt
 ```
 
-**espeak-ng is required** — it's the phonemizer backend. The simplest correct install ships
-prebuilt dictionaries:
-
-```bash
-pip install espeakng-loader     # bundles espeak-ng 1.52, dictionaries included
-```
-
-```python
-import espeakng_loader
-from phonemizer.backend.espeak.wrapper import EspeakWrapper
-EspeakWrapper.set_library(espeakng_loader.get_library_path())
-EspeakWrapper.set_data_path(espeakng_loader.get_data_path())
-```
+**espeak-ng** is the phonemizer backend, and `requirements.txt` already pulls in
+`espeakng-loader` (which ships espeak-ng 1.52 with complete dictionaries). `kokoro_ninja` wires
+it into phonemizer automatically on import, so there is nothing else to do. A system espeak, if
+you have one, takes precedence.
 
 The model was trained against espeak-ng **1.50**. We compared 1.50 and 1.52 through this repo's
 phonemizer and got **identical phonemes on all 30 Vietnamese benchmark sentences**, plus identical

@@ -14,3 +14,4 @@ phonemizer              # requires espeak-ng 1.50 installed separately (see READ
 pandas
 matplotlib
 nltk
+espeakng-loader          # ships libespeak-ng; auto-wired by kokoro_ninja on import
