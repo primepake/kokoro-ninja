@@ -4,8 +4,9 @@
 someone's voice and some text, and it speaks in that voice — at **~15× realtime on a single
 GPU**.
 
-**7 languages:** Vietnamese, English, Chinese, French, German, Japanese, Korean — one model,
-one speaker embedding, so a cloned voice carries across every language it supports.
+**Vietnamese is what it's good at.** It also speaks English, Chinese, French, German, Japanese
+and Korean — but voice *cloning* fidelity outside Vietnamese is measurably weaker, and we publish
+the numbers below rather than claim seven equal languages.
 
 **[🎧 Listen to the demo](https://primepake.github.io/kokoro-ninja/)** — side-by-side against
 VieNeu-TTS and omnivoice-vietnamese on held-out speakers, plus one voice across all seven
@@ -100,36 +101,55 @@ for lang, text in [
 
 ## Benchmarks
 
-Measured on one NVIDIA L4, VIVOS test split, 10 held-out speakers × 3 sentences, same
-references and sentences for every system:
+One NVIDIA L4, **105 held-out speakers**, identical references and sentences for every system.
+Vietnamese: all 65 VIVOS speakers. English: 40 LibriSpeech test-clean speakers. References are
+3–10 s in both languages so the two are comparable.
 
-| System | RTF ↓ | ×realtime | SECS ↑ | UTMOSv2 ↑ | WER ↓ |
-|---|---|---|---|---|---|
-| **Kokoro Ninja** | **0.061** | **16.3×** | 0.894 | 2.660 | 3.9% |
-| omnivoice-vietnamese | 0.437 | 2.3× | 0.916 | 2.660 | 2.6% |
-| VieNeu-TTS v3 Turbo | 0.718 | 1.4× | 0.931 | 2.445 | 3.3% |
-| *human recording* | — | — | *0.914* | *3.019* | *5.7%* |
+### Vietnamese — 65 speakers, 130 utterances
 
-Honestly: **we win on speed by 7–12×** and tie omnivoice-vietnamese for the best predicted
-naturalness, but **speaker similarity trails** the autoregressive models — 0.894 against a 0.833
-floor (two different speakers) and a 0.914 ceiling (the same speaker's other recordings), so we
-reach about three-quarters of the usable range while they reach it or pass it. If you need
-maximum timbre fidelity from one clip rather than throughput, VieNeu v3 Turbo is currently
-better. Intelligibility is below the human recordings' own 5.7% WER.
+| System | RTF ↓ | ×realtime | SECS ↑ | clone% ↑ | UTMOSv2 ↑ | WER ↓ |
+|---|---|---|---|---|---|---|
+| **Kokoro Ninja** | **0.055** | **18.2×** | 0.909 | 87% | 2.623 | 3.6% |
+| omnivoice-vietnamese | 0.399 | 2.5× | 0.933 | 99% | **2.714** | **1.4%** |
+| VieNeu-TTS v3 Turbo | 0.736 | 1.4× | **0.934** | 99% | 2.516 | 3.9% |
+| *human recording* | — | — | *0.936* | *100%* | *2.860* | *1.6%* |
+
+**7.3× faster than omnivoice-vietnamese and 13.4× faster than VieNeu v3 Turbo on the same GPU.**
+We also edge out VieNeu Turbo on both intelligibility (3.6% vs 3.9% WER) and predicted
+naturalness (2.62 vs 2.52). Where we lose is **speaker similarity**: 87% of the human ceiling
+against their 99%. `clone%` rescales SECS between the cross-speaker floor (0.725 — two
+*different* Vietnamese speakers) and the human ceiling (0.936 — the same speaker's other
+recordings), because the raw cosine occupies a narrow band and is meaningless without both
+anchors.
+
+### English — 40 speakers, 80 utterances
+
+| System | RTF ↓ | ×realtime | SECS ↑ | clone% ↑ | UTMOSv2 ↑ | WER ↓ |
+|---|---|---|---|---|---|---|
+| **Kokoro Ninja** | **0.047** | **21.1×** | 0.706 | **9%** | 2.832 | 9.1% |
+| *human recording* | — | — | *0.960* | *100%* | *3.249* | *4.2%* |
+
+**Read this as the honest limitation it is.** English comes out fast and broadly intelligible,
+but at 9% of the usable similarity range (floor 0.681, ceiling 0.960) it is **barely above
+"different speaker"** — the model speaks English, it does not reliably clone a voice into it.
+We checked whether this was an artifact of our own eval and it is not: matching the English
+reference-duration window to Vietnamese moved SECS by 0.001. Use it for Vietnamese cloning;
+treat the other six languages as speech synthesis, not voice cloning, until this improves.
 
 RTF is full-utterance compute ÷ audio duration, not time-to-first-audio. SECS is scored with
-WavLM-base-plus-sv rather than CAMPPlus, since scoring with the encoder the model is
-conditioned on would flatter it. WER is PhoWhisper back-transcription, which catches wrong
-tones because a wrong tone is a different Vietnamese word. UTMOSv2 is also nondeterministic —
-rescoring identical audio moves it by up to 0.08, so treat small MOS gaps as noise; SECS and WER
-are exactly reproducible.
+WavLM-base-plus-sv rather than CAMPPlus, since scoring with the encoder this model is
+conditioned on would flatter it. WER uses PhoWhisper for Vietnamese and Whisper for English —
+using one model for both would inflate the other language's error for reasons unrelated to the
+TTS. UTMOSv2 is English/Japanese-trained, so on Vietnamese it is a proxy; it is also
+nondeterministic (up to 0.08 between runs on identical audio), so treat small MOS gaps as noise.
+SECS and WER are exactly reproducible.
 
 ### Always end your text with punctuation
 
 The model is trained on sentence-final punctuation and is genuinely sensitive to it — text
 without a terminal mark tends to clip or run on at the end. `synthesize()` appends one when your
-text lacks it. The effect is not subtle: on the benchmark above, adding the missing period moved
-WER from 5.1% to 3.9% and predicted MOS from 2.47 to 2.66.
+text lacks it. The effect is not subtle: adding the missing period moved WER from 5.1% to 3.9%
+and predicted MOS from 2.47 to 2.66 on an earlier run of this benchmark.
 
 ## Vietnamese phonemization
 
@@ -150,7 +170,8 @@ merger in Vietnamese.)
 ## Limitations
 
 - **Speaker similarity** trails the best autoregressive/codec models (see above).
-- **Benchmarked on Vietnamese only** — the other six languages work but are not yet measured.
+- **Cloning fidelity outside Vietnamese is weak** — see the English table above. Chinese,
+  French, German, Japanese and Korean are not yet measured, but expect the same pattern.
 - **Japanese input must be kana.** espeak-ng reads hiragana and katakana correctly but
   silently *drops* kanji, so run text through a kanji→kana converter (pyopenjtalk, MeCab)
   first. Every other language takes normal text.
