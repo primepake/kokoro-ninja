@@ -1,0 +1,62 @@
+name: CI
+
+# CPU-only smoke test — no GPU, no model weights. It exists to catch the class of
+# bug that shipped once already: the package imported fine in a dev environment but
+# raised "espeak not installed on your system" on a clean machine, because
+# phonemizer does not find the pip-installed espeak-ng by itself.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install (CPU torch, as a new user would)
+        run: |
+          python -m pip install -q --upgrade pip
+          pip install -q torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e ".[cpu]"
+
+      - name: Package imports and exposes all 7 languages
+        run: |
+          python - <<'PY'
+          from kokoro_ninja import KokoroNinja, FAST_SUPPORTED_LANGUAGES
+          expected = ("vi", "en", "zh", "fr", "de", "ja", "ko")
+          assert FAST_SUPPORTED_LANGUAGES == expected, FAST_SUPPORTED_LANGUAGES
+          print("languages:", FAST_SUPPORTED_LANGUAGES)
+          PY
+
+      - name: espeak is auto-wired (the regression this job exists for)
+        run: |
+          python - <<'PY'
+          import kokoro_ninja  # noqa: F401  -- import wires espeak
+          from phonemizer.backend import EspeakBackend
+          assert EspeakBackend.is_available(), "espeak not wired up on a clean machine"
+          print("espeak version:", EspeakBackend.version())
+          PY
+
+      - name: Vietnamese phonemization, including onset disambiguation
+        run: |
+          python - <<'PY'
+          import kokoro_ninja  # noqa: F401
+          from kokoro_ninja.phonemize_vi import phonemize_tokens
+
+          out = " ".join(phonemize_tokens("trời trong xanh chị sáu sang sông".split()))
+          print("phonemes:", out)
+          # tr -> retroflex ʈ, s -> retroflex ʂ; raw espeak collapses both.
+          assert "ʈ" in out, "tr should map to retroflex, got: " + out
+          assert "ʂ" in out, "s should map to retroflex, got: " + out
+
+          # A terminal mark must survive; the model is sensitive to its absence.
+          assert phonemize_tokens(["xin", "chào."]), "punctuation handling broke"
+          print("onset disambiguation OK")
+          PY

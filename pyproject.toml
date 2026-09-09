@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kokoro-ninja"
+version = "0.1.0"
+description = "Fast multilingual text-to-speech with zero-shot voice cloning"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+keywords = ["text-to-speech", "tts", "voice-cloning", "zero-shot", "vietnamese", "multilingual"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+  "torch>=2.1",
+  "torchaudio>=2.1",
+  "numpy",
+  "librosa",
+  "soundfile",
+  "pyyaml",
+  "munch",
+  "einops",
+  "einops_exts",
+  "scipy",
+  "transformers>=4.30",
+  "phonemizer",
+  "espeakng-loader",
+  "pandas",
+  "matplotlib",
+  "nltk",
+]
+
+[project.optional-dependencies]
+# CAMPPlus speaker encoder runs through onnxruntime; pick the build for your machine.
+gpu = ["onnxruntime-gpu"]
+cpu = ["onnxruntime"]
+
+[project.urls]
+Homepage = "https://github.com/primepake/kokoro-ninja"
+Demo = "https://primepake.github.io/kokoro-ninja/"
+Weights = "https://huggingface.co/prime2070/kokoro-ninja"
+
+[tool.setuptools.packages.find]
+include = ["kokoro_ninja*"]
+
+[tool.setuptools.package-data]
+kokoro_ninja = ["*.yml", "StyleTTS2/**/*.yml"]
